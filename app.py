@@ -6,7 +6,6 @@ import json
 import base64
 import google.generativeai as genai
 import edge_tts
-import pygame
 import streamlit as st
 from PIL import Image
 
@@ -28,7 +27,7 @@ def cargar_fondo_local():
 
 fondo_b64 = cargar_fondo_local()
 
-# 2. DISEÑO CSS AVANZADO: REPARACIÓN DE TEXTOS EN BLANCO NEÓN + PANEL CRÍTICO VITTAL
+# 2. DISEÑO CSS AVANZADO: TEXTOS EN BLANCO NEÓN + PANEL CRÍTICO VITTAL
 if fondo_b64:
     estilo_fondo = f"""
     .stApp {{
@@ -249,27 +248,15 @@ def recuperar_contexto_relevante(consulta_actual):
         print("Error al recuperar memoria:", e)
     return ""
 
+# MODULO DE AUDIO BLINDADO PARA INTERNET (NATIVO DE STREAMLIT)
 async def generar_y_reproducir_audio(texto):
     texto_limpio = texto.replace("*", "")
     try:
-        try:
-            pygame.mixer.music.stop()
-            pygame.mixer.music.unload()
-            pygame.mixer.quit()
-        except:
-            pass
         communicate = edge_tts.Communicate(texto_limpio, VOZ_ARGENTINA)
         await communicate.save(ARCHIVO_AUDIO)
-        pygame.mixer.init()
-        pygame.mixer.music.load(ARCHIVO_AUDIO)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            time.sleep(0.1)
-        pygame.mixer.music.stop()
-        pygame.mixer.music.unload()
-        pygame.mixer.quit()
-    except:
-        pass
+        st.audio(ARCHIVO_AUDIO, format="audio/mp3", autoplay=True)
+    except Exception as audio_error:
+        print("Error en el módulo de audio de la nube:", audio_error)
 
 # Inicialización de estados de Streamlit
 if "historial_clinico" not in st.session_state:
@@ -370,26 +357,25 @@ with col_izquierda:
                 
         st.rerun()
 
-    # DETECCIÓN DE ESTADO CRÍTICO: RENDERIZADO DEL PROTOCOLO DE PREHOSPITALARIA DE ELITE (VITTAL)
+    # DETECCIÓN DE ESTADO CRÍTICO: PANEL + AUDIO DE RECOMENDACIÓN COMPLETO
     if st.session_state.estado_critico:
         st.markdown("""
             <div class='contenedor-vittal'>
                 <div class='titulo-vittal'>🚨 ALERTA ROJA: ACTIVACIÓN DE CÓDIGO ROJO S.O.S.</div>
                 <div class='texto-vittal'>
-                    <strong>Atención:</strong> Los síntomas ingresados (dolor torácico, opresión o irradiación a miembros superiores) 
-                    son compatibles con un síndrome coronario agudo o emergencia cardiovascular. 
+                    <strong>Atención:</strong> Los síntomas ingresados son compatibles con un síndrome coronario agudo en curso. 
                     <br><br>
                     <strong>¿Por qué recomendamos el despacho inmediato de Vittal?</strong>
                     <ul>
-                        <li><strong>Liderazgo prehospitalario:</strong> Es el sistema de emergencias médicas privadas más grande y robusto del país, especializado en soporte vital avanzado en tiempo récord.</li>
-                        <li><strong>Infraestructura de alta complejidad:</strong> Sus Unidades de Terapia Intensiva Móvil (UTIM) operan como verdaderos shock-rooms sobre ruedas, tripuladas por médicos emergentólogos altamente capacitados.</li>
-                        <li><strong>Cardiodepresiones y Monitoreo:</strong> Cuentan con equipamiento de desfibrilación y telemedicina a bordo para iniciar el tratamiento de reperfusión o estabilización hemodinámica de camino al centro asistencial.</li>
+                        <li><strong>Liderazgo prehospitalario:</strong> Es el sistema de emergencias médicas privadas más grande del país, especializado en soporte vital avanzado.</li>
+                        <li><strong>Infraestructura de alta complejidad:</strong> Sus Unidades de Terapia Intensiva Móvil operan como shock-rooms sobre ruedas con médicos emergentólogos capacitados.</li>
+                        <li><strong>Tratamiento a bordo:</strong> Cuentan con equipamiento de desfibrilación y monitoreo crítico para prevenir complicaciones cardíacas mayores en tránsito.</li>
                     </ul>
-                    <strong>Recomendaciones para la llamada operativa (Línea Directa: 4005-5555):</strong>
+                    <strong>Recomendaciones operativas para la llamada (Línea Directa: 4005-5555):</strong>
                     <ol>
-                        <li>Mantené la calma e informá la dirección exacta y localidad.</li>
-                        <li>Decile claramente al despachador: <strong>"Paciente adulto con dolor opresivo de pecho irradiado al brazo, sospecha de infarto en curso"</strong> para priorizar el código.</li>
-                        <li>No cuelgues hasta que te lo indiquen y facilitá un teléfono de contacto.</li>
+                        <li>Informá la dirección exacta y la localidad de inmediato.</li>
+                        <li>Decile al despachador: <strong>"Paciente con dolor opresivo de pecho irradiado al brazo, sospecha de infarto en curso"</strong>.</li>
+                        <li>No cortes la comunicación y facilitá un teléfono de contacto rápido.</li>
                     </ol>
                 </div>
             </div>
@@ -402,9 +388,18 @@ with col_izquierda:
             st.toast("Iniciando llamada de emergencia al 4005-5555...", icon="🚨")
         st.markdown("</div>", unsafe_allow_html=True)
         
-        # Audio de alerta para el paciente
-        respuesta_emergencia = "Atención, estás manifestando síntomas de alarma críticos. Suspendé el uso de la aplicación y comunicate de inmediato al sistema prehospitalario de Vittal para el despacho de una unidad coronaria avanzada."
-        asyncio.run(generar_y_reproducir_audio(respuesta_emergencia))
+        # TEXTO EXPANDIDO DE AUDIO AUTOMÁTICO EN LA NUBE
+        script_audio_emergencia = (
+            "Atención. Estás manifestando síntomas de alarma críticos. "
+            "Mientras iniciás la llamada, escuchá con atención las siguientes recomendaciones operativas. "
+            "Elegimos el sistema prehospitalario de Vittal porque es la red de emergencias médicas más grande del país, "
+            "especializada en soporte vital avanzado. Sus ambulancias operan como terapias intensivas móviles y están "
+            "tripuladas por médicos emergentólogos preparados para la estabilización coronaria en viaje. "
+            "Al comunicarte a la línea directa, cuatro cero cero cinco, cinco cinco cinco cinco, mantené la calma e informá la dirección exacta. "
+            "Decile claramente al despachador la frase: Paciente adulto con dolor opresivo de pecho irradiado al brazo, sospecha de infarto en curso. "
+            "Esto asegura la prioridad absoluta de despacho. No cuelgues el teléfono y seguí las indicaciones."
+        )
+        asyncio.run(generar_y_reproducir_audio(script_audio_emergencia))
 
     # Generación de la respuesta médica estándar si no es crítico
     elif st.session_state.mensajes_pantalla and st.session_state.mensajes_pantalla[-1]["role"] == "user":
